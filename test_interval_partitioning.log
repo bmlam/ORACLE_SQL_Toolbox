@@ -1,0 +1,98 @@
+rem: for this test, the table was partitioned by month!
+
+SQL> @C:\Users\nq00185100\Documents\BIC-Other_Selected_Folders\Profiling_PersonalSandboxes\lambonmi\requests\nnnn_source_job_runtimes\dwso\vdc1w_dw\nba_prof\tables\amd_job\test_interval_partitioning.sql
+SQL> set lines 160 echo on
+SQL> 
+SQL> col partition_name format a30
+SQL> col high_value	format a80
+SQL> 
+SQL> create or replace view vw_test_1234 as
+  2  select partition_name, high_value, segment_created
+  3  from user_tab_partitions
+  4  where 1=1
+  5    and table_name = 'AMD_JOB'
+  6  order by partition_name
+  7  ;
+
+View created.
+
+Elapsed: 00:00:00.05
+SQL> 
+SQL> select * from vw_test_1234;
+
+PARTITION_NAME                 HIGH_VALUE                                                                       SEGM                                            
+------------------------------ -------------------------------------------------------------------------------- ----                                            
+PRE201705                      TO_DATE(' 2017-05-01 00:00:00', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIA NO                                              
+PRE201706                      TO_DATE(' 2017-06-01 00:00:00', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIA NO                                              
+
+Elapsed: 00:00:00.10
+SQL> 
+SQL> insert into amd_job ( job_id, se_id, start_ts, finish_ts, rerun_seq, exit_code , state )
+  2  values ( 123,  345, to_date( '2017.05.01', 'yyyy.mm.dd'), to_date( '2017.05.01', 'yyyy.mm.dd'), 0, 0, 'state?' )
+  3  ;
+
+1 row created.
+
+Elapsed: 00:00:00.05
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> select * from vw_test_1234;
+
+PARTITION_NAME                 HIGH_VALUE                                                                       SEGM                                            
+------------------------------ -------------------------------------------------------------------------------- ----                                            
+PRE201705                      TO_DATE(' 2017-05-01 00:00:00', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIA NO                                              
+PRE201706                      TO_DATE(' 2017-06-01 00:00:00', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIA YES                                             
+
+Elapsed: 00:00:00.06
+SQL> 
+SQL> insert into amd_job ( job_id, se_id, start_ts, finish_ts, rerun_seq, exit_code , state )
+  2  values ( 123+1,  345, to_date( '2017.07.01', 'yyyy.mm.dd'), to_date( '2017.05.01', 'yyyy.mm.dd'), 0, 0, 'state?' )
+  3  ;
+
+1 row created.
+
+Elapsed: 00:00:00.04
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> select * from vw_test_1234;
+
+PARTITION_NAME                 HIGH_VALUE                                                                       SEGM                                            
+------------------------------ -------------------------------------------------------------------------------- ----                                            
+PRE201705                      TO_DATE(' 2017-05-01 00:00:00', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIA NO                                              
+PRE201706                      TO_DATE(' 2017-06-01 00:00:00', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIA YES                                             
+SYS_P1458888                   TO_DATE(' 2017-08-01 00:00:00', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIA YES                                             
+
+Elapsed: 00:00:00.01
+SQL> 
+SQL> insert into amd_job ( job_id, se_id, start_ts, finish_ts, rerun_seq, exit_code , state )
+  2  values ( 123+2,  345, to_date( '2017.09.01', 'yyyy.mm.dd'), to_date( '2017.05.01', 'yyyy.mm.dd'), 0, 0, 'state?' )
+  3  ;
+
+1 row created.
+
+Elapsed: 00:00:00.12
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> select * from vw_test_1234;
+
+PARTITION_NAME                 HIGH_VALUE                                                                       SEGM                                            
+------------------------------ -------------------------------------------------------------------------------- ----                                            
+PRE201705                      TO_DATE(' 2017-05-01 00:00:00', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIA NO                                              
+PRE201706                      TO_DATE(' 2017-06-01 00:00:00', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIA YES                                             
+SYS_P1458888                   TO_DATE(' 2017-08-01 00:00:00', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIA YES                                             
+SYS_P1458889                   TO_DATE(' 2017-10-01 00:00:00', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIA YES                                             
+
+Elapsed: 00:00:00.01
+SQL> spool off
