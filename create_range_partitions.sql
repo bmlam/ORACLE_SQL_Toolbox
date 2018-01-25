@@ -1,5 +1,5 @@
  
-
+-- Example of partition table
 create table test_part 
 partition by range (created)
 (
@@ -11,6 +11,7 @@ select * from user_objects
 where created > trunc( sysdate - 1 )
 ;
 
+-- now the magic query 
 with magic_ as (
     select 'P' as part_name_prefix
         , 'yyyy.mm.dd hh24:mi:ss' as date_mask_universal
@@ -37,7 +38,7 @@ with magic_ as (
     from time_range0_ r
     where time_val <= end_time
 )
-select ',PARTITION '|| part_name_prefix||part_name_infix||part_name_suffix
-    ||' VALUES LESS THAN ( TO_DATE(' ||quoted_upper_bound|| ', '''||date_mask_universal||''' )'  partition_clause
+select '   ,PARTITION '|| part_name_prefix||part_name_infix||part_name_suffix
+    ||' VALUES LESS THAN ( TO_DATE(' ||quoted_upper_bound|| ', '''||date_mask_universal||''' ) )'  partition_clause
 from time_range1_ order by 1
 ;
