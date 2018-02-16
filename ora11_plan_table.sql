@@ -41,3 +41,14 @@ CREATE TABLE ORA11_PLAN_TABLE
 
 -- comment out grant if not appropiate 
 GRANT INSERT, DELETE, SELECT ON ORA11_PLAN_TABLE TO PUBLIC;
+
+-- An example for use in SQLPLUS
+explain plan set statement_id = 'MyUniqueId' into ORA11_PLAN_TABLE for
+WITH fact_ AS ( 
+          SELECT * FROM USER_OBJECTS
+;
+  
+set pages 300 lines 200 
+
+select * from table ( dbms_xplan.display( table_name=> 'ORA11_PLAN_TABLE', statement_id=> 'MyUniqueId') );
+
