@@ -1,3 +1,4 @@
+These files are in my desktop folder FavoriteOracleDocs. I list them here so I can put togehter folder again everywhere quicky:
 
 Concept__e40540.pdf :			https://docs.oracle.com/cd/E11882_01/server.112/e40540.pdf
 DatabaseReference__e40402.pdf :		https://docs.oracle.com/cd/E11882_01/server.112/e40402.pdf
