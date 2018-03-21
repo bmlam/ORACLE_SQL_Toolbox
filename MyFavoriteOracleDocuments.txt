@@ -1,8 +1,8 @@
 These files are in my desktop folder FavoriteOracleDocs. I list them here so I can put togehter folder again everywhere quicky:
 
-Concept__e40540.pdf :			https://docs.oracle.com/cd/E11882_01/server.112/e40540.pdf
-DatabaseReference__e40402.pdf :		https://docs.oracle.com/cd/E11882_01/server.112/e40402.pdf
+Concept_11_2_e40540.pdf :			https://docs.oracle.com/cd/E11882_01/server.112/e40540.pdf
+DatabaseReference_11_2_e40402.pdf :		https://docs.oracle.com/cd/E11882_01/server.112/e40402.pdf
 ErrorMessages__e17766.pdf
-LangReference_plsql_b28370.pdf:		https://docs.oracle.com/cd/B28359_01/appdev.111/b28370/toc.htm
-PLSQPSuppiedPkgTypes_e40758.pdf:	https://docs.oracle.com/cd/E11882_01/appdev.112/e40758.pdf
-SQL_Reference__e41084.pdf:		https://docs.oracle.com/cd/E11882_01/server.112/e41084.pdf
+LangReference_plsql_11_2_b28370.pdf:		https://docs.oracle.com/cd/B28359_01/appdev.111/b28370/toc.htm
+PLSQPSuppiedPkgTypes_11_2_e40758.pdf:	https://docs.oracle.com/cd/E11882_01/appdev.112/e40758.pdf
+SQL_Reference_11_2_e41084.pdf:		https://docs.oracle.com/cd/E11882_01/server.112/e41084.pdf
