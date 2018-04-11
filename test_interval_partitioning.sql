@@ -51,3 +51,4 @@ commit;
 select * from vw_test_1234;
 
 
+-- see the file with suffix .log for result of the SQL statements
