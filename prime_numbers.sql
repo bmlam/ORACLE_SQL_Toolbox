@@ -1,4 +1,4 @@
-SET ECHO OFF SCan OFF 
+SET ECHO OFF SCan OFF serverout on timing on linesize 140 pages 100 
 
 rem a procedure to compute prime number and store the result into  table prime_numbers
 rem that will be created in code if necessary  
@@ -28,7 +28,16 @@ rem It uses the Sieve of Eratosthenes algorithm
 --	END LOOP; 
 --END;
 --/
---
+
+alter session set nls_date_format = 'yyyy.mm.dd hh24:mi:ss';
+
+
+
+
+
+
+
+
 CREATE OR REPLACE PROCEDURE p_prime_numbers 
 ( i_start_with NUMBER := 1
  ,i_end_with   NUMBER := NULL
@@ -40,40 +49,48 @@ CREATE OR REPLACE PROCEDURE p_prime_numbers
 	l_end_with_used NUMBER(38);
 	TYPE h_map_varchar2_to_bool IS TABLE OF BOOLEAN INDEX BY VARCHAR2(100);
 	lt_prime_flag h_map_varchar2_to_bool;
-	l_number_running NUMBER := i_start_with;
+	l_number_running NUMBER ;
 	l_prime_curr 	 NUMBER; 
 	l_prime_maybe  	 NUMBER; 
 	l_elapse_secs    NUMBER;
 	l_stop  BOOLEAN := FALSE;
+	l_safety_countdown NUMBER := 9;
 BEGIN 
 	l_end_with_used := COALESCE( i_end_with, POWER(10,7));
+	dbms_output.put_line( $$plsql_unit||':'||$$plsql_line||' '|| systimestamp ||' l_end_with_used: '||l_end_with_used );
+
+	l_number_running := greatest( 2, i_start_with);
 	IF mod( l_number_running, 2 ) = 0 THEN
 		l_number_running := l_number_running + 1;
 	END IF;
 	-- step 1
 	WHILE l_number_running <= l_end_with_used LOOP
 		lt_prime_flag( TO_CHAR(l_number_running)) := NULL;
+		l_number_running := l_number_running + 2;
 	END LOOP;
 
+
+	dbms_output.put_line( $$plsql_unit||':'||$$plsql_line||' '|| systimestamp ||' list elems:'||lt_prime_flag.count );
+	dbms_output.put_line( $$plsql_unit||':'||$$plsql_line||' '|| systimestamp ||' last in list:'||lt_prime_flag.last );
 
 	WHILE NOT l_stop 
 	LOOP
 		IF l_prime_curr IS NULL THEN 
 			l_prime_curr := 2; -- step 2
 		ELSE	
-			-- get first prime from list 
-
-			l_prime_maybe := lt_prime_flag.first;
+			-- get next prime from list 
+			l_prime_maybe := lt_prime_flag.next( l_prime_curr ); 
+			l_prime_curr := NULL;
 			WHILE l_prime_maybe IS NOT NULL LOOP
 				IF lt_prime_flag( l_prime_maybe ) IS NULL THEN
 					l_prime_curr := l_prime_maybe;
-					dbms_output.put_line( $$plsql_unit||':'||$$plsql_line||  systimestamp ||' '||' prime cure: '||l_prime_curr );
 					EXIT;
 				END IF;
 				l_prime_maybe := lt_prime_flag.next ( l_prime_maybe );
 			END LOOP; -- over list 
 
 		END IF; 
+		dbms_output.put_line( $$plsql_unit||':'||$$plsql_line||' '|| systimestamp ||' prime curr: '||l_prime_curr );
 
 		IF l_prime_curr IS NOT NULL 
 		THEN 
@@ -88,13 +105,33 @@ BEGIN
 				VALUES ( s.prime, l_run_start, systimestamp )
 			;
 			COMMIT;
+
+			l_number_running := l_prime_curr;
+			WHILE l_number_running <= l_end_with_used LOOP
+				DECLARE 
+					l_dummy_flag BOOLEAN;
+				BEGIN 
+					l_dummy_flag := lt_prime_flag( TO_CHAR(l_number_running));
+					-- if previous assignment did not raise NO_DATA_FOUND it means the number is in the list 
+				 	lt_prime_flag( TO_CHAR(l_number_running)):= NULL;
+				EXCEPTION 
+					WHEN NO_DATA_FOUND THEN 
+						NULL;
+				END test_num_in_list;
+				l_number_running := l_number_running + l_prime_curr ;
+
+			END LOOP; -- to mark non-primes 
+
 		END IF; -- a prime found from list 
 
 		l_elapse_secs := ( SYSDATE - l_run_start ) * 1440 * 60;		
-		l_stop := l_elapse_secs >= i_max_run_seconds OR l_prime_curr IS NULL;
+		l_stop := l_elapse_secs >= i_max_run_seconds OR l_prime_curr IS NULL ;
 
-		dbms_output.put_line( $$plsql_unit||':'||$$plsql_line||  systimestamp ||' '||' prime cure: '||l_prime_curr );
-
+		l_safety_countdown := l_safety_countdown - 1;
+		IF l_safety_countdown = 0 THEN
+			dbms_output.put_line( $$plsql_unit||':'||$$plsql_line||  systimestamp ||' '||' l_safety_countdown reached 0 ' );
+			EXIT;
+		END IF;
 	END LOOP; -- until l_stop 
 
 END;
