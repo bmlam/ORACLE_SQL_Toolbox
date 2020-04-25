@@ -42,6 +42,7 @@ CREATE OR REPLACE PROCEDURE p_prime_numbers
 ( i_start_with NUMBER := 1
  ,i_end_with   NUMBER := NULL
  ,i_max_run_seconds NUMBER := 36
+ ,i_safe_count_down NUMBER := 99
 ) AS 
 	--                                       12345678901234567890123456789012345678
 	-- lk_max_end_with                       99999999999999999999999999999999999999;
@@ -54,8 +55,17 @@ CREATE OR REPLACE PROCEDURE p_prime_numbers
 	l_prime_maybe  	 NUMBER; 
 	l_elapse_secs    NUMBER;
 	l_stop  BOOLEAN := FALSE;
-	l_safety_countdown NUMBER := 9;
+	l_safety_countdown NUMBER;
+
+	FUNCTION num_to_vc2_index (
+		i_num  NUMBER 
+	) RETURN VARCHAR2
+	AS 
+	BEGIN RETURN LPAD( TO_CHAR( i_num ), 38, '0' );
+	END num_to_vc2_index;
+
 BEGIN 
+	l_safety_countdown := COALESCE( i_safe_count_down, 999 );
 	l_end_with_used := COALESCE( i_end_with, POWER(10,7));
 	dbms_output.put_line( $$plsql_unit||':'||$$plsql_line||' '|| systimestamp ||' l_end_with_used: '||l_end_with_used );
 
@@ -64,13 +74,15 @@ BEGIN
 		l_number_running := l_number_running + 1;
 	END IF;
 	-- step 1
-	WHILE l_number_running <= l_end_with_used LOOP
-		lt_prime_flag( TO_CHAR(l_number_running)) := NULL;
+	lt_prime_flag( num_to_vc2_index(2)  ) := TRUE;
+	WHILE l_number_running <= l_end_with_used 
+	LOOP
+		lt_prime_flag( num_to_vc2_index ( l_number_running) ) := NULL;
 		l_number_running := l_number_running + 2;
 	END LOOP;
 
-
 	dbms_output.put_line( $$plsql_unit||':'||$$plsql_line||' '|| systimestamp ||' list elems:'||lt_prime_flag.count );
+	dbms_output.put_line( $$plsql_unit||':'||$$plsql_line||' '|| systimestamp ||' firs in list:'||lt_prime_flag.first );
 	dbms_output.put_line( $$plsql_unit||':'||$$plsql_line||' '|| systimestamp ||' last in list:'||lt_prime_flag.last );
 
 	WHILE NOT l_stop 
@@ -79,20 +91,20 @@ BEGIN
 			l_prime_curr := 2; -- step 2
 		ELSE	
 			-- get next prime from list 
-			l_prime_maybe := lt_prime_flag.next( l_prime_curr ); 
-			l_prime_curr := NULL;
+			l_prime_maybe := lt_prime_flag.next( num_to_vc2_index (l_prime_curr) ); 
+			dbms_output.put_line( $$plsql_unit||':'||$$plsql_line||' '|| systimestamp ||' prime_maybe: '||l_prime_maybe );
 			WHILE l_prime_maybe IS NOT NULL LOOP
-				IF lt_prime_flag( l_prime_maybe ) IS NULL THEN
+				IF lt_prime_flag( num_to_vc2_index (l_prime_maybe) ) IS NULL THEN
 					l_prime_curr := l_prime_maybe;
 					EXIT;
 				END IF;
-				l_prime_maybe := lt_prime_flag.next ( l_prime_maybe );
+				l_prime_maybe := lt_prime_flag.next ( num_to_vc2_index (l_prime_maybe) );
 			END LOOP; -- over list 
 
 		END IF; 
 		dbms_output.put_line( $$plsql_unit||':'||$$plsql_line||' '|| systimestamp ||' prime curr: '||l_prime_curr );
 
-		IF l_prime_curr IS NOT NULL 
+		IF l_prime_curr > 2 
 		THEN 
 			-- save the prime number just found
 			MERGE INTO prime_numbers d
@@ -107,25 +119,39 @@ BEGIN
 			COMMIT;
 
 			l_number_running := l_prime_curr;
+			dbms_output.put_line( $$plsql_unit||':'||$$plsql_line||' '|| systimestamp ||' number_running '||l_number_running );
 			WHILE l_number_running <= l_end_with_used LOOP
+				l_number_running := l_number_running + l_prime_curr ;
 				DECLARE 
 					l_dummy_flag BOOLEAN;
 				BEGIN 
-					l_dummy_flag := lt_prime_flag( TO_CHAR(l_number_running));
+					l_dummy_flag := lt_prime_flag( num_to_vc2_index(l_number_running) );
 					-- if previous assignment did not raise NO_DATA_FOUND it means the number is in the list 
-				 	lt_prime_flag( TO_CHAR(l_number_running)):= NULL;
+					dbms_output.put_line( $$plsql_unit||':'||$$plsql_line||' '|| systimestamp ||' number_running '||l_number_running );
+				 	lt_prime_flag( num_to_vc2_index(l_number_running) ):= FALSE;
 				EXCEPTION 
 					WHEN NO_DATA_FOUND THEN 
 						NULL;
-				END test_num_in_list;
-				l_number_running := l_number_running + l_prime_curr ;
+				END mark_num_in_list;
 
 			END LOOP; -- to mark non-primes 
 
 		END IF; -- a prime found from list 
 
 		l_elapse_secs := ( SYSDATE - l_run_start ) * 1440 * 60;		
-		l_stop := l_elapse_secs >= i_max_run_seconds OR l_prime_curr IS NULL ;
+
+		l_stop := l_elapse_secs >= i_max_run_seconds;
+
+		IF NOT l_stop THEN 
+			l_prime_maybe := lt_prime_flag.next ( l_prime_curr );
+			-- see if all the next numbers in list are FALSE
+			WHILE l_number_running <= l_end_with_used LOOP
+				EXIT WHEN lt_prime_flag( num_to_vc2_index(l_number_running) );
+				l_prime_maybe := lt_prime_flag.next ( l_prime_maybe );
+			END LOOP;
+
+			l_stop := l_prime_maybe IS NULL;
+		END IF ;
 
 		l_safety_countdown := l_safety_countdown - 1;
 		IF l_safety_countdown = 0 THEN
