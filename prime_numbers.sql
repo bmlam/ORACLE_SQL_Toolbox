@@ -43,6 +43,16 @@ CREATE OR REPLACE PROCEDURE p_prime_numbers
  ,i_end_with   NUMBER := NULL
  ,i_max_run_seconds NUMBER := 36
 ) AS 
+-- Excessively huge collection will yield such error:
+--
+-- SQL> exec p_prime_numbers( 1, 99999999, 600 )
+-- BEGIN p_prime_numbers( 1, 99999999, 600 ); END;
+-- 
+-- *
+-- ERROR at line 1:
+-- ORA-04036: PGA memory used by the instance exceeds PGA_AGGREGATE_LIMIT
+-- ORA-06512: at "LAM.P_PRIME_NUMBERS", line 40
+-- ORA-06512: at line 1
 	--                                       12345678901234567890123456789012345678
 	-- lk_max_end_with                       99999999999999999999999999999999999999;
 	l_run_start DATE := SYSDATE;
@@ -156,7 +166,7 @@ BEGIN
 
 		l_safety_countdown := l_safety_countdown - 1;
 		IF l_safety_countdown = 0 THEN
-			dbms_output.put_line( $$plsql_unit||':'||$$plsql_line||  systimestamp ||' '||' l_safety_countdown reached 0 ' );
+			raise_application_error(-20001, $$plsql_unit||':'||$$plsql_line||  systimestamp ||' '||' l_safety_countdown reached 0 ' );
 			EXIT;
 		END IF;
 	END LOOP; -- until l_stop 
